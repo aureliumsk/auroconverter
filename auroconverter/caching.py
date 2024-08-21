@@ -27,7 +27,7 @@ def filehash(fp: BufferedIOBase,
 
     buffer: bytearray = bytearray(buffer_length)
     view: memoryview = memoryview(buffer)
-    hasher = md5().gz
+    hasher = md5()
 
     if not hasattr(fp, 'readinto'):
         raise ValueError("fp isn't a file stream opened in binary mode!")
