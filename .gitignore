@@ -5,3 +5,7 @@
 __pycache__/
 
 __auroconv__/
+
+*.png
+*.jpeg
+*.webp
