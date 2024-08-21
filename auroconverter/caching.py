@@ -12,10 +12,6 @@ typemap: dict[type, str] = {
     int: "i",
     bool: "?"
 }
-# auroconv ansi sample.png --cols 80
-# auroconv ansi sample.png --cols 180
-
-
 
 
 def filehash(fp: BufferedIOBase,
