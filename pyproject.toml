@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "auroconverter"
+version = "0.1.0"
+description = ""
+authors = ["JustLoveC1de <ijustlovecode@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pillow = "^10.4.0"
+typer = "^0.12.4"
+numpy = "^2.0.1"
+ipython = "^8.26.0"
+
+
+[tool.poetry.scripts]
+auroconv = "auroconverter:app"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
