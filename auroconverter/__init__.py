@@ -1,6 +1,7 @@
 from .conv import File, spinning_progress, process_image
 from .caching import FileRelatedCache, filehash
 from rich.table import Table
+from rich import print as rprint
 from typing import List
 from PIL import Image, ImageSequence
 from concurrent.futures import ProcessPoolExecutor, Future
@@ -10,7 +11,6 @@ from time import perf_counter
 from time import sleep
 import numpy as np
 import typer
-import rich
 import io
 
 app: typer.Typer = typer.Typer()
@@ -66,23 +66,26 @@ def info(files: List[File]) -> None:
             size: tuple[int, int] = im.size
             table.add_row(file.name, im.format, f"{size[0]}x{size[1]}", im.mode)
 
-    rich.print(table)
+    rprint(table)
 
 
 
 
 @app.command("ansi")
 def ansi(file: File, cols: int = 80, scale: float = 0.43, char: str = "@", anim: bool = False,
-         color: bool = True) -> None:
+         color: bool = True, caching: bool = True) -> None:
     """Print ANSI repr of image."""
     start: float = perf_counter()
 
-    print("Searching data in cache...")
+    rprint("[italic grey78]Searching data in cache...[/]")
 
-    frames: list[str] | object = cache.loadcache(file, additional=(cols, scale, char, color))
+    frames: list[str] | object = cache.loadcache(file, additional=(cols, scale, char, color)) if caching else cache.sentinel
 
     if frames is cache.sentinel:
-        print("No data, starting the processing...")
+        if caching:
+            rprint("[italic bold orange1]No data, starting the processing...[/]")
+        else:
+            rprint("[italic bold yellow]Caching is disabled![/]")
         with spinning_progress() as progress:
             progress.add_task("Processing image...")
             im: Image.Image = process_image(file)
@@ -91,18 +94,19 @@ def ansi(file: File, cols: int = 80, scale: float = 0.43, char: str = "@", anim:
                     tp.submit(imgtoansi, fr.copy(), cols=cols, scale=scale, char=char, color=color) 
                     for fr in ImageSequence.Iterator(im)]
             frames = list(map(lambda f: f.result(), framesf))
-            cache.cachedata(file, frames, additional=(
-                cols, scale, char, color
-            ))
+            if caching:
+                cache.cachedata(file, frames, additional=(
+                    cols, scale, char, color
+                ))
     else:
-        print("Data found.")
+        rprint("[italic bold cyan1]Data found![/]")
 
-    print(f"Done in {perf_counter() - start:.2f}s.")
+    rprint(f"[italic grey78]Done in [bold cyan1]{perf_counter() - start:.2f}[/] seconds.[/]")
     if anim:
         i: int = 0
         frl: int = len(frames) - 1
         frheight: int = frames[0].count("\n") + 2
-        print(f"There are {frheight} rows.")
+        rprint(f"[italic grey78]There are [bold cyan1]{frheight}[/] rows.[/]")
         try:
             while True:
                 print(frames[i])
@@ -110,7 +114,8 @@ def ansi(file: File, cols: int = 80, scale: float = 0.43, char: str = "@", anim:
                 sleep(0.05)
                 i = 0 if i == frl else i + 1
         except KeyboardInterrupt:
-            print(f"\x1b[{frheight}M\x1b[0mDone!")
+            print(f"\x1b[{frheight}M\x1b[0m", end="")
+            rprint("[italic grey78]Done![/]")
     else:
         print(frames[0])
         print("\x1b[0m")
