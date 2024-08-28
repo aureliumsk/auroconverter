@@ -107,6 +107,7 @@ def ansi(file: File, cols: int = 80, scale: float = 0.43, char: str = "@", anim:
             while True:
                 print(frames[i])
                 print(f"\x1b[{frheight}F")
+                sleep(0.05)
                 i = 0 if i == frl else i + 1
         except KeyboardInterrupt:
             print(f"\x1b[{frheight}M\x1b[0mDone!")
