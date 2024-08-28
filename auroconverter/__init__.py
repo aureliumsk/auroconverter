@@ -86,7 +86,7 @@ def ansi(file: File, cols: int = 80, scale: float = 0.43, char: str = "@", anim:
         with spinning_progress() as progress:
             progress.add_task("Processing image...")
             im: Image.Image = process_image(file)
-            with ProcessPoolExecutor(max_workers=4) as tp:
+            with ProcessPoolExecutor() as tp:
                 framesf: list[Future] = [
                     tp.submit(imgtoansi, fr.copy(), cols=cols, scale=scale, char=char, color=color) 
                     for fr in ImageSequence.Iterator(im)]
