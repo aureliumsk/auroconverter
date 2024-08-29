@@ -9,7 +9,7 @@ import typer
 
 
 
-File: TypeAlias = Annotated[typer.FileBinaryRead, typer.Argument()]
+File: TypeAlias = Annotated[typer.FileBinaryRead, typer.Argument(help="Path to image.")]
 
 DEFAULT_PROGRESS_TEXT = "[progress.description]{task.description}"
 

@@ -1,8 +1,8 @@
 from .conv import File, spinning_progress, process_image
-from .caching import FileRelatedCache, filehash
+from .caching import FileRelatedCache
 from rich.table import Table
 from rich import print as rprint
-from typing import List
+from typing import List, Annotated
 from PIL import Image, ImageSequence
 from concurrent.futures import ProcessPoolExecutor, Future
 from pathlib import Path
@@ -72,9 +72,14 @@ def info(files: List[File]) -> None:
 
 
 @app.command("ansi")
-def ansi(file: File, cols: int = 80, scale: float = 0.43, char: str = "@", anim: bool = False,
-         color: bool = True, caching: bool = True) -> None:
-    """Print ANSI repr of image."""
+def ansi(file: File, 
+         cols: Annotated[int, typer.Option("--cols", "-c", help="Count of characters in one row.")] = 80, 
+         scale: Annotated[float, typer.Option("--scale", "-s", help="Font size.")] = 0.43, 
+         char: Annotated[str, typer.Option("--char", help="Character, which will be used to display tiles.")] = "@", 
+         anim: Annotated[bool, typer.Option("--anim", "-a", help="Display image as animation.")] = False,
+         color: Annotated[bool, typer.Option("--color", help="Use all kinds of colors.")] = True, 
+         caching: Annotated[bool, typer.Option("--caching", help="Use cached results.")] = True) -> None:
+    """Print ANSI representation of image."""
     start: float = perf_counter()
 
     rprint("[italic grey78]Searching data in cache...[/]")
