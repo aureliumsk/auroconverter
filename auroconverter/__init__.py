@@ -118,10 +118,9 @@ def ansi(file: File,
 
 
     console.print(f"Done in [float]{perf_counter() - start:.2f}[/]")
-    with Live(framesc[0], refresh_per_second=20, transient=True) as live:
-        i: int = 0
-        frl: int = len(frames) - 1
+    with Live("", refresh_per_second=20, transient=True,
+              screen=True) as live:
         while True:
-            sleep(0.05)
-            live.update(framesc[i])
-            i = 0 if i == frl else i + 1
+            for frame in framesc:
+                live.update(frame)
+                sleep(0.05)
