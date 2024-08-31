@@ -1,4 +1,4 @@
-from .conv import File, spinning_progress, process_image
+from .conv import File, process_image
 from .caching import FileRelatedCache
 from rich.table import Table
 from rich.console import Console
@@ -56,22 +56,17 @@ def imgtoansi(im: Image.Image, cols: int, scale: float, char: str, color: bool) 
     return res
 
 
-
-
 @app.command("info")
 def info(files: List[File]) -> None:
     """Print information about image."""
     table = Table("Name", "Format", "Size", "Mode")
-    with spinning_progress() as progress:
-        progress.add_task("Processing images...")
+    with console.status("Processing images..."):
         for file in files:
             im: Image.Image = process_image(file)
             size: tuple[int, int] = im.size
             table.add_row(file.name, im.format, f"{size[0]}x{size[1]}", im.mode)
 
     console.print(table)
-
-
 
 
 @app.command("ansi")
