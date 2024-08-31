@@ -2,7 +2,10 @@ from .conv import File, process_image
 from .caching import FileRelatedCache
 from rich.table import Table
 from rich.console import Console
-from typing import List, Annotated
+from rich.theme import Theme
+from rich.live import Live
+from rich.text import Text
+from typing import List, Annotated, Optional
 from PIL import Image, ImageSequence
 from concurrent.futures import ProcessPoolExecutor, Future
 from pathlib import Path
@@ -15,12 +18,17 @@ import io
 
 app: typer.Typer = typer.Typer()
 cache: FileRelatedCache = FileRelatedCache(Path("__auroconv__"))
-console: Console = Console()
+theme: Theme = Theme({
+    "repr.ellipsis": "none",
+    "float": "bold cyan"
+})
+console: Console = Console(theme=theme)
+
 
 
 
 def avgcol(img: np.ndarray, color: bool = True):
-    avgcol: np.ndarray | np.floating = np.mean(img, axis=(0, 1))
+    avgcol: np.ndarray | np.floating = np.mean(img, axis=(0, 1), dtype=np.uint64)
     return avgcol if color else (avgcol, ) * 3
 
 
@@ -29,6 +37,7 @@ def imgtoansi(im: Image.Image, cols: int, scale: float, char: str, color: bool) 
     w: float = W / cols
     h: float = w / scale
     rows: int = int(H // h)
+    previous: Optional[int] = None
     
     if not color:
         im = im.convert("L")
@@ -47,7 +56,9 @@ def imgtoansi(im: Image.Image, cols: int, scale: float, char: str, color: bool) 
                 cim: np.ndarray = arrim[y1: y2 + 1, x1: x2 + 1]
 
                 avg: np.ndarray = avgcol(cim, color)
-                o.write(f"\x1b[38;2;{int(avg[0])};{int(avg[1])};{int(avg[2])}m{char}") # char = @
+                rgb_color: int = (1 << 24 | avg[0] << 16 | avg[1] << 8 | avg[2])
+                o.write(f"\033[0m\033[38;2;{avg[0]};{avg[1]};{avg[2]}m{char}" if previous != rgb_color else char) # char = @
+                previous = rgb_color
 
             o.write("\n")
 
@@ -74,13 +85,12 @@ def ansi(file: File,
          cols: Annotated[int, typer.Option("--cols", "-c", help="Count of characters in one row.")] = 80, 
          scale: Annotated[float, typer.Option("--scale", "-s", help="Font size.")] = 0.43, 
          char: Annotated[str, typer.Option(help="Character, which will be used to display tiles.")] = "@", 
-         anim: Annotated[bool, typer.Option("--anim", "-a", help="Display image as animation.")] = False,
          color: Annotated[bool, typer.Option(help="Use all kinds of colors.")] = True, 
          caching: Annotated[bool, typer.Option(help="Use cached results.")] = True) -> None:
     """Print ANSI representation of image."""
     start: float = perf_counter()
 
-    console.print("[italic grey78]Searching data in cache...[/]")
+    console.print("Searching data in cache...")
 
     frames: list[str] | object = cache.loadcache(file, additional=(cols, scale, char, color)) if caching else cache.sentinel
 
@@ -101,23 +111,17 @@ def ansi(file: File,
                     cols, scale, char, color
                 ))
     else:
-        console.print("[italic bold cyan1]Data found![/]")
+        console.print("Data found!")
 
-    console.print(f"[italic grey78]Done in [bold cyan1]{perf_counter() - start:.2f}[/] seconds.[/]")
-    if anim:
+    with console.status("Converting..."):
+        framesc: list[Text] = [frame for frame in map(lambda a: Text.from_ansi(a), frames)]
+
+
+    console.print(f"Done in [float]{perf_counter() - start:.2f}[/]")
+    with Live(framesc[0], refresh_per_second=20, transient=True) as live:
         i: int = 0
         frl: int = len(frames) - 1
-        frheight: int = frames[0].count("\n") + 2
-        console.print(f"[italic grey78]There are [bold cyan1]{frheight}[/] rows.[/]")
-        try:
-            while True:
-                print(frames[i])
-                print(f"\x1b[{frheight}F")
-                sleep(0.05)
-                i = 0 if i == frl else i + 1
-        except KeyboardInterrupt:
-            print(f"\x1b[{frheight}M\x1b[0m", end="")
-            console.print("[italic grey78]Done![/]")
-    else:
-        print(frames[0])
-        print("\x1b[0m")
+        while True:
+            sleep(0.05)
+            live.update(framesc[i])
+            i = 0 if i == frl else i + 1
