@@ -36,8 +36,8 @@ def imgtoansi(im: Image.Image, cols: int, scale: float, char: str, color: bool) 
     W, H = im.size
     w: float = W / cols
     h: float = w / scale
-    rows: int = int(H // h)
-    previous: Optional[int] = None
+    rows: int = int(H / h)
+    prev: Optional[int] = None
     
     if not color:
         im = im.convert("L")
@@ -56,15 +56,21 @@ def imgtoansi(im: Image.Image, cols: int, scale: float, char: str, color: bool) 
                 cim: np.ndarray = arrim[y1: y2 + 1, x1: x2 + 1]
 
                 avg: np.ndarray = avgcol(cim, color)
-                rgb_color: int = (1 << 24 | avg[0] << 16 | avg[1] << 8 | avg[2])
-                o.write(f"\033[0m\033[38;2;{avg[0]};{avg[1]};{avg[2]}m{char}" if previous != rgb_color else char) # char = @
-                previous = rgb_color
+
+                rgb: int = (
+                    avgcol[0] << 16 | avgcol[1] << 8 | avgcol[2]
+                )
+                
+                o.write((
+                    f"\033[0m\033[38;2;{avg[0]};{avg[1]};{avg[2]}m{char}" 
+                    if prev != rgb else char
+                ))
+
+                prev = rgb
 
             o.write("\n")
-
-        res: str = o.getvalue()
-
-    return res
+            
+        return o.getvalue()
 
 
 @app.command("info")
@@ -113,9 +119,10 @@ def ansi(file: File,
     else:
         console.print("Data found!")
 
+    # TODO: Use termios or smth in this part
     with console.status("Converting..."):
-        framesc: list[Text] = [frame for frame in map(lambda a: Text.from_ansi(a), frames)]
-
+        framesc: list[Text] = [Text.from_ansi(frame)
+                               for frame in frames]
 
     console.print(f"Done in [float]{perf_counter() - start:.2f}[/]")
     with Live("", refresh_per_second=20, transient=True,
